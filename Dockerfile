@@ -58,4 +58,8 @@ RUN mkdir -p /data/db && \
 
 USER 999
 
+# ensure that if running as custom user that "mongosh" has a valid "HOME"
+# https://github.com/docker-library/mongo/issues/524
+ENV HOME /data/db
+
 ENTRYPOINT [ "/usr/local/bin/mongod" ]
