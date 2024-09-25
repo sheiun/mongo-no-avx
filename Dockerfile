@@ -1,4 +1,4 @@
-FROM debian:11 as build
+FROM debian:12 AS build
 
 RUN apt update -y && apt install -y build-essential \
         libcurl4-openssl-dev \
@@ -6,10 +6,11 @@ RUN apt update -y && apt install -y build-essential \
         libssl-dev \
         python-dev-is-python3 \
         python3-pip \
+        python3-venv \
         curl \
     && rm -rf /var/lib/apt/lists/*
 
-ARG MONGO_VERSION=6.2.1
+ARG MONGO_VERSION=7.0.2
 
 RUN mkdir /src && \
     curl -o /tmp/mongo.tar.gz -L "https://github.com/mongodb/mongo/archive/refs/tags/r${MONGO_VERSION}.tar.gz" && \
@@ -24,16 +25,19 @@ RUN patch -p1 < /o2_patch.diff
 ARG NUM_JOBS=
 
 RUN export GIT_PYTHON_REFRESH=quiet && \
+    python3 -m venv venv && \
+    . venv/bin/activate && \
     python3 -m pip install requirements_parser && \
     python3 -m pip install -r etc/pip/compile-requirements.txt && \
     if [ "${NUM_JOBS}" -gt 0 ]; then export JOBS_ARG="-j ${NUM_JOBS}"; fi && \
-    python3 buildscripts/scons.py install-servers MONGO_VERSION="${MONGO_VERSION}" --release --disable-warnings-as-errors ${JOBS_ARG} && \
+    python3 buildscripts/scons.py install-servers MONGO_VERSION="${MONGO_VERSION}" --release --disable-warnings-as-errors ${JOBS_ARG} --linker=gold && \
     mv build/install /install && \
     strip --strip-debug /install/bin/mongod && \
     strip --strip-debug /install/bin/mongos && \
-    rm -rf build
+    rm -rf build && \
+    rm -rf venv
 
-FROM debian:11
+FROM debian:12
 
 RUN apt update -y && \
     apt install -y libcurl4 && \
