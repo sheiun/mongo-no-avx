@@ -40,9 +40,15 @@ RUN export GIT_PYTHON_REFRESH=quiet && \
 FROM debian:12
 
 RUN apt update -y && \
-    apt install -y libcurl4 && \
+    apt install -y libcurl4 wget && \
     apt-get clean \
     && rm -rf /var/lib/apt/lists/*
+
+RUN wget -qO- https://www.mongodb.org/static/pgp/server-7.0.asc | tee /etc/apt/trusted.gpg.d/server-7.0.asc && \
+    echo "deb [ arch=amd64,arm64 ] https://repo.mongodb.org/apt/debian bookworm/mongodb-org/7.0 main" | tee /etc/apt/sources.list.d/mongodb-org-7.0.list && \
+    apt update -y && \
+    apt install -y mongodb-mongosh && \
+    rm -rf /var/lib/apt/lists/*
 
 COPY --from=build /install/bin/mongo* /usr/local/bin/
 
